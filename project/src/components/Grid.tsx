@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import { gridData } from '../data/gridData';
+import { Toast } from './Toast';
 
 const COLOR_MAP = {
   1: '#ffeda4',
@@ -19,6 +20,16 @@ export function Grid() {
   const [cellNumbers, setCellNumbers] = useState<{ [key: string]: number }>({});
   const [selectedColorNumber, setSelectedColorNumber] = useState<number>(1);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const roastMessages = [
+    "Wow, you're really trying to make this as colorful as your personality, aren't you? 😅",
+    "Nice try! But this isn't a Jackson Pollock painting... 🎨",
+    "That's about as correct as pineapple on pizza! 🍕",
+    "Are you colorblind or just feeling rebellious today? 🤔",
+    "Even my pet rock makes better color choices! 🪨"
+  ];
 
   // Initialize cell numbers on component mount
   useEffect(() => {
@@ -29,11 +40,17 @@ export function Grid() {
       numbers[`top-${i}`] = 1;
       numbers[`bottom-${i}`] = 1;
     }
+    
+    // Set last column to 1
+    numbers[`top-20`] = 1;
+    numbers[`bottom-20`] = 1;
     for (let i = 0; i < gridData.length; i++) {
       numbers[`left-${i}`] = 1;
       numbers[`right-${i}`] = 1;
+      // Set the rightmost cell of each row to 1
+      numbers[`${i}-19`] = 1;
     }
-
+  
     // Set pattern cells to 9 and remaining to random 2-8
     gridData.forEach((row, rowIndex) => {
       row.forEach((cell, colIndex) => {
@@ -45,27 +62,27 @@ export function Grid() {
         }
       });
     });
-
+  
     setCellNumbers(numbers);
   }, []);
+  const handleCellClick = (position: string, idx: number) => {
+    if (selectedColorNumber) {
+      const key = `${position}-${idx}`;
+      const cellNumber = cellNumbers[key];
+      
+      // Check if the selected color matches the cell number
+      if (cellNumber !== selectedColorNumber) {
+        const randomRoast = roastMessages[Math.floor(Math.random() * roastMessages.length)];
+        setToastMessage(randomRoast);
+        setShowToast(true);
+        return;
+      }
 
-  const handleCellClick = (rowIndex: string | number, colIndex: number) => {
-    const cellKey = typeof rowIndex === 'string' 
-      ? `${rowIndex}-${colIndex}`
-      : `${rowIndex}-${colIndex}`;
-
-    const cellNumber = cellNumbers[cellKey];
-    
-    if (cellNumber !== selectedColorNumber) {
-      setErrorMessage('Wrong color! Try again.');
-      setTimeout(() => setErrorMessage(''), 2000);
-      return;
+      setSelectedColors(prev => ({
+        ...prev,
+        [key]: COLOR_MAP[selectedColorNumber as keyof typeof COLOR_MAP]
+      }));
     }
-
-    setSelectedColors(prev => ({
-      ...prev,
-      [cellKey]: COLOR_MAP[selectedColorNumber as keyof typeof COLOR_MAP]
-    }));
   };
 
   const getCellContent = (cellKey: string) => {
@@ -80,6 +97,17 @@ export function Grid() {
         </span>
       </>
     );
+  };
+
+  const handleFillAll = () => {
+    const newColors: { [key: string]: string } = {};
+    
+    // Fill all cells based on their numbers
+    Object.entries(cellNumbers).forEach(([key, number]) => {
+      newColors[key] = COLOR_MAP[number as keyof typeof COLOR_MAP];
+    });
+    
+    setSelectedColors(newColors);
   };
 
   return (
@@ -103,16 +131,22 @@ export function Grid() {
         ))}
       </div>
 
-      {errorMessage && (
-        <div className="absolute -top-8 left-0 right-0 text-red-500 text-center">
-          {errorMessage}
-        </div>
-      )}
-
       <div 
         className="grid grid-cols-[repeat(21,minmax(12px,1fr))] gap-[1px] bg-gradient-to-b from-rose-300 via-yellow-200 to-rose-300 px-1 py-4 rounded-lg"
         style={{ aspectRatio: '21/82' }}
       >
+        {/* Fill All button positioned at the red mark location */}
+        <div className="absolute left-[-120px] top-[5%] transform -translate-y-1/2">
+          <button
+            onClick={handleFillAll}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg 
+                     hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg 
+                     hover:shadow-xl transform hover:-translate-y-0.5 whitespace-nowrap text-sm"
+          >
+            Fill All Colors
+          </button>
+        </div>
+
         {/* Top row */}
         {Array(21).fill(0).map((_, idx) => (
           <div
@@ -143,7 +177,7 @@ export function Grid() {
                 key={`${rowIndex}-${colIndex}`}
                 className="relative aspect-square transition-colors duration-300 border-[0.5px] border-gray-300 cursor-pointer hover:opacity-80"
                 style={{ backgroundColor: selectedColors[`${rowIndex}-${colIndex}`] || '#ffffff' }}
-                onClick={() => handleCellClick(rowIndex, colIndex)}
+                onClick={() => handleCellClick(String(rowIndex), colIndex)}
               >
                 {getCellContent(`${rowIndex}-${colIndex}`)}
               </div>
@@ -163,6 +197,8 @@ export function Grid() {
           </div>
         ))}
       </div>
+
+      {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
     </div>
   );
 }
