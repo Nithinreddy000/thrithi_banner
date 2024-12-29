@@ -122,7 +122,7 @@ export function Grid() {
         // First capture at a higher resolution
         const canvas = await html2canvas(gridRef.current, {
           backgroundColor: null,
-          scale: 4, // Increased scale for higher quality
+          scale: 10, // Increased scale for higher quality
           width: 512, // Doubled base width
           height: 2560, // Doubled base height
           useCORS: true,
