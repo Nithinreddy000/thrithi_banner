@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Eye } from 'lucide-react';
 import { gridData } from '../data/gridData';
 import { Toast } from './Toast';
+import { Controls } from './Controls';
+import html2canvas from 'html2canvas';
 
 const COLOR_MAP = {
   1: '#ffeda4',
@@ -22,6 +24,9 @@ export function Grid() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [history, setHistory] = useState<{[key: string]: string}[]>([{}]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const roastMessages = [
     "Wow, you're really trying to make this as colorful as your personality, aren't you? 😅",
@@ -65,12 +70,12 @@ export function Grid() {
   
     setCellNumbers(numbers);
   }, []);
+
   const handleCellClick = (position: string, idx: number) => {
     if (selectedColorNumber) {
       const key = `${position}-${idx}`;
       const cellNumber = cellNumbers[key];
       
-      // Check if the selected color matches the cell number
       if (cellNumber !== selectedColorNumber) {
         const randomRoast = roastMessages[Math.floor(Math.random() * roastMessages.length)];
         setToastMessage(randomRoast);
@@ -78,12 +83,70 @@ export function Grid() {
         return;
       }
 
-      setSelectedColors(prev => ({
-        ...prev,
-        [key]: COLOR_MAP[selectedColorNumber as keyof typeof COLOR_MAP]
-      }));
+      // Create new state
+      const newColors = {
+        ...selectedColors,
+        [key]: COLOR_MAP[selectedColorNumber]
+      };
+
+      // Add to history, removing any future steps if we're not at the end
+      const newHistory = [...history.slice(0, currentStep + 1), newColors];
+      setHistory(newHistory);
+      setCurrentStep(currentStep + 1);
+      setSelectedColors(newColors);
     }
   };
+
+  const handleUndo = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      setSelectedColors(history[currentStep - 1]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (currentStep < history.length - 1) {
+      setCurrentStep(currentStep + 1);
+      setSelectedColors(history[currentStep + 1]);
+    }
+  };
+
+  const handleSave = () => {
+    localStorage.setItem('gridColors', JSON.stringify(selectedColors));
+    alert('Progress saved!');
+  };
+
+  const handleDownload = async () => {
+    if (gridRef.current) {
+      try {
+        const canvas = await html2canvas(gridRef.current, {
+          backgroundColor: null,
+          scale: 2, // Higher quality
+          width: 256,
+          height: 1280
+        });
+        
+        const link = document.createElement('a');
+        link.download = 'thrithi-banner.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Error generating image:', error);
+        alert('Failed to download image. Please try again.');
+      }
+    }
+  };
+
+  // Load saved progress on mount
+  useEffect(() => {
+    const savedColors = localStorage.getItem('gridColors');
+    if (savedColors) {
+      const colors = JSON.parse(savedColors);
+      setSelectedColors(colors);
+      setHistory([{}, colors]);
+      setCurrentStep(1);
+    }
+  }, []);
 
   const getCellContent = (cellKey: string) => {
     const number = cellNumbers[cellKey];
@@ -132,10 +195,17 @@ export function Grid() {
       </div>
 
       <div 
-        className="grid grid-cols-[repeat(21,minmax(12px,1fr))] gap-[1px] bg-gradient-to-b from-rose-300 via-yellow-200 to-rose-300 px-1 py-4 rounded-lg"
-        style={{ aspectRatio: '21/82' }}
+        ref={gridRef}
+        className="grid grid-cols-[repeat(21,minmax(12px,1fr))] bg-gradient-to-b from-rose-300 via-yellow-200 to-rose-300 rounded-lg overflow-hidden"
+        style={{ 
+          aspectRatio: '0/82',
+          lineHeight: 0,
+          fontSize: 0,
+          padding: 0,
+          margin: 0
+        }}
       >
-        {/* Fill All button positioned at the red mark location */}
+        {/* Fill All button */}
         <div className="absolute left-[-120px] top-[5%] transform -translate-y-1/2">
           <button
             onClick={handleFillAll}
@@ -151,8 +221,14 @@ export function Grid() {
         {Array(21).fill(0).map((_, idx) => (
           <div
             key={`top-${idx}`}
-            className="relative aspect-square transition-colors duration-300 border-[0.5px] border-gray-300 cursor-pointer hover:opacity-80"
-            style={{ backgroundColor: selectedColors[`top-${idx}`] || '#ffffff' }}
+            className="relative aspect-square transition-colors duration-300 cursor-pointer hover:opacity-80 border-[0.25px] border-gray-300 leading-[0] block"
+            style={{ 
+              backgroundColor: selectedColors[`top-${idx}`] || '#ffffff',
+              fontSize: 0,
+              lineHeight: 0,
+              margin: 0,
+              padding: 0
+            }}
             onClick={() => handleCellClick('top', idx)}
           >
             {getCellContent(`top-${idx}`)}
@@ -164,8 +240,14 @@ export function Grid() {
           <React.Fragment key={`row-${rowIndex}`}>
             {/* Left cell */}
             <div
-              className="relative aspect-square transition-colors duration-300 border-[0.5px] border-gray-300 cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: selectedColors[`left-${rowIndex}`] || '#ffffff' }}
+              className="relative aspect-square transition-colors duration-300 cursor-pointer hover:opacity-80 border-[0.25px] border-gray-300 leading-[0] block"
+              style={{ 
+                backgroundColor: selectedColors[`left-${rowIndex}`] || '#ffffff',
+                fontSize: 0,
+                lineHeight: 0,
+                margin: 0,
+                padding: 0
+              }}
               onClick={() => handleCellClick('left', rowIndex)}
             >
               {getCellContent(`left-${rowIndex}`)}
@@ -175,8 +257,14 @@ export function Grid() {
             {row.map((cell, colIndex) => (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className="relative aspect-square transition-colors duration-300 border-[0.5px] border-gray-300 cursor-pointer hover:opacity-80"
-                style={{ backgroundColor: selectedColors[`${rowIndex}-${colIndex}`] || '#ffffff' }}
+                className="relative aspect-square transition-colors duration-300 cursor-pointer hover:opacity-80 border-[0.25px] border-gray-300 leading-[0] block"
+                style={{ 
+                  backgroundColor: selectedColors[`${rowIndex}-${colIndex}`] || '#ffffff',
+                  fontSize: 0,
+                  lineHeight: 0,
+                  margin: 0,
+                  padding: 0
+                }}
                 onClick={() => handleCellClick(String(rowIndex), colIndex)}
               >
                 {getCellContent(`${rowIndex}-${colIndex}`)}
@@ -189,14 +277,29 @@ export function Grid() {
         {Array(21).fill(0).map((_, idx) => (
           <div
             key={`bottom-${idx}`}
-            className="relative aspect-square transition-colors duration-300 border-[0.5px] border-gray-300 cursor-pointer hover:opacity-80"
-            style={{ backgroundColor: selectedColors[`bottom-${idx}`] || '#ffffff' }}
+            className="relative aspect-square transition-colors duration-300 cursor-pointer hover:opacity-80 border-[0.25px] border-gray-300 leading-[0] block"
+            style={{ 
+              backgroundColor: selectedColors[`bottom-${idx}`] || '#ffffff',
+              fontSize: 0,
+              lineHeight: 0,
+              margin: 0,
+              padding: 0
+            }}
             onClick={() => handleCellClick('bottom', idx)}
           >
             {getCellContent(`bottom-${idx}`)}
           </div>
         ))}
       </div>
+
+      <Controls
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onDownload={handleDownload}
+        onSave={handleSave}
+        canUndo={currentStep > 0}
+        canRedo={currentStep < history.length - 1}
+      />
 
       {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
     </div>
