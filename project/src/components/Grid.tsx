@@ -119,20 +119,87 @@ export function Grid() {
   const handleDownload = async () => {
     if (gridRef.current) {
       try {
+        // First capture at a higher resolution
         const canvas = await html2canvas(gridRef.current, {
           backgroundColor: null,
-          scale: 2, // Higher quality
-          width: 256,
-          height: 1280
+          scale: 4, // Increased scale for higher quality
+          width: 512, // Doubled base width
+          height: 2560, // Doubled base height
+          useCORS: true,
+          removeContainer: true,
+          logging: false,
+          windowWidth: 512,
+          windowHeight: 2560,
+          onclone: (document) => {
+            const clonedGrid = document.querySelector('[data-html2canvas-clone]');
+            if (clonedGrid && clonedGrid instanceof HTMLElement) {
+              clonedGrid.style.width = '512px';
+              clonedGrid.style.height = '2560px';
+              clonedGrid.style.display = 'grid';
+              clonedGrid.style.gridTemplateColumns = 'repeat(21, 1fr)';
+              clonedGrid.style.gap = '0';
+              clonedGrid.style.padding = '0';
+              clonedGrid.style.margin = '0';
+              clonedGrid.style.position = 'relative';
+              
+              // Enhance cell quality
+              const cells = clonedGrid.querySelectorAll('div');
+              cells.forEach(cell => {
+                if (cell instanceof HTMLElement) {
+                  cell.style.width = '100%';
+                  cell.style.height = '100%';
+                  cell.style.padding = '0';
+                  cell.style.margin = '0';
+                  cell.style.display = 'block';
+                  cell.style.imageRendering = 'pixelated'; // Sharper edges
+                }
+              });
+            }
+          }
         });
+
+        // Create a temporary canvas with even higher resolution
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 1024;  // 4x original width
+        tempCanvas.height = 5120; // 4x original height
+        const ctx = tempCanvas.getContext('2d');
         
-        const link = document.createElement('a');
-        link.download = 'thrithi-banner.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        if (ctx) {
+          // Enable better image smoothing
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          
+          // Draw the captured content with higher resolution
+          ctx.drawImage(canvas, 0, 0, 1024, 5120);
+          
+          // Convert to PNG with maximum quality
+          const link = document.createElement('a');
+          link.download = 'thrithi-banner-hd.png';
+          link.href = tempCanvas.toDataURL('image/png', 1.0);
+          
+          // Add metadata for better quality
+          const img = new Image();
+          img.src = link.href;
+          img.onload = () => {
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 1024;
+            finalCanvas.height = 5120;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            if (finalCtx) {
+              finalCtx.imageSmoothingEnabled = true;
+              finalCtx.imageSmoothingQuality = 'high';
+              finalCtx.drawImage(img, 0, 0, 1024, 5120);
+              
+              // Download with maximum quality
+              link.href = finalCanvas.toDataURL('image/png', 1.0);
+              link.click();
+            }
+          };
+        }
       } catch (error) {
-        console.error('Error generating image:', error);
-        alert('Failed to download image. Please try again.');
+        console.error('Error generating HD image:', error);
+        alert('Failed to download HD image. Please try again.');
       }
     }
   };
