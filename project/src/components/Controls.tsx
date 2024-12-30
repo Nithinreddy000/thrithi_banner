@@ -19,7 +19,7 @@ export const Controls: React.FC<ControlsProps> = ({
   canRedo,
 }) => {
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-6 py-3 flex gap-4">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-6 py-3 flex gap-4 mt-16" style={{marginLeft: '1rem'}}>
       <button
         onClick={onUndo}
         disabled={!canUndo}

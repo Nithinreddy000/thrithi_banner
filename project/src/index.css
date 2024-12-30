@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.responsive-container {
+  height: 195vh;
+}
+
+@media (min-width: 770px) and (max-width: 1024px) {
+  .responsive-container {
+    height: 150vh;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .responsive-container {
+    height: 120vh;
+  }
+}
+
+@media (min-width: 1441px) {
+  .responsive-container {
+    height: auto;
+  }
+}
