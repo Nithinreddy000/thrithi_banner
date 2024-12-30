@@ -18,7 +18,13 @@
   }
 }
 
-@media (min-width: 1441px) {
+@media (min-width: 1441px) and (max-width: 1551px) {
+  .responsive-container {
+    height: 175vh;
+  }
+}
+
+@media (min-width: 1552px) {
   .responsive-container {
     height: auto;
   }
