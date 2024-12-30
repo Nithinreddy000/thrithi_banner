@@ -272,7 +272,7 @@ export function Grid() {
           margin: 0
         }}
       >
-        {/* Fill All button */}
+        {/* Fill All button
         <div className="absolute left-[-120px] top-[5%] transform -translate-y-1/2">
           <button
             onClick={handleFillAll}
@@ -282,7 +282,7 @@ export function Grid() {
           >
             Fill All Colors
           </button>
-        </div>
+        </div> */}
 
         {/* Top row */}
         {Array(21).fill(0).map((_, idx) => (
